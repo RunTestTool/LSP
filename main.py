@@ -1,16 +1,20 @@
-# This is a sample Python script.
+"""
+LSP Calculator - Main Application Entry Point
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+This file is maintained for IDE compatibility and testing purposes.
+For running the application, use: streamlit run app.py
 
+DO NOT RUN THIS FILE DIRECTLY.
+Use the Streamlit CLI instead: streamlit run app.py
+"""
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    print("=" * 60)
+    print("LSP Calculator - Hong Kong Long Service Payment Tool")
+    print("=" * 60)
+    print()
+    print("To run the application, use:")
+    print("    streamlit run app.py")
+    print()
+    print("For detailed instructions, see README.md")
+    print("=" * 60)

@@ -4,6 +4,7 @@ import numpy as np
 from datetime import datetime
 import io
 import requests
+from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 
@@ -118,7 +119,7 @@ LANG_DICT = {
         "m_help": "MPF 回報率。建議參考：積金局 DIS 核心累積基金 (約 4-5%)。詳見積金局季度報告連結。",
         "r_help": "折現率，用於計算未來負債現值。建議參考金管局外匯基金票據收益率。詳見金管局連結。",
         "t_help": "年度離職率（員工提前離職概率）。僅 HKFRS 下按年複合計算留任概率。SME-FRS 假設留任概率為 100%。",
-        "upload_guide": "格式需求：需含 [Name, Hired Date, DOB, Salary at Transition, Current Salary, MPF Mand (ER), MPF Vol (ER)]。MPF Vol (ER) 可選填，留空視作 0。",
+        "upload_guide": "格式需求：需含 [Name, Hired Date, DOB, Salary at Transition, Current Salary, MPF Mand (ER), MPF Vol (ER)]。MPF Mand (ER) 應填截至評估日、僅限 2025-05-01 或之前僱主強制性供款的應計權益；如留空或為 0，系統會先估算截至 2025-05-01 的僱主強制性供款，再按 MPF 回報率滾存至評估日。MPF Vol (ER) 可選填，留空視作 0。",
         "res_pre": "轉制前 LSP (a)",
         "res_mpf_pre": "MPF 對沖 (轉制前)",
         "res_net_pre": "轉制前淨額 (a')",
@@ -129,11 +130,11 @@ LANG_DICT = {
         "res_emp_post": "僱主承擔 (b'-資助)",
         "res_final": "最終負債 (a'+僱主b') [SME-FRS 不折現 / HKFRS×PV]",
         "res_mpf_basis": "MPF 數據基礎",
-        "mpf_actual": "實際結餘",
-        "mpf_estimated": "估算強制性供款 (分段上限×5%×12，含複利回報)",
+        "mpf_actual": "實際應計權益（評估日；僅限 2025-05-01 前僱主強制性供款）",
+        "mpf_estimated": "估算應計權益（僱主強制性供款至 2025-05-01，再滾存至評估日）",
         "links_title": "📖 官方資源與數據連結",
         "sig_text": "我方確認以上數據及邏輯準確無誤：",
-        "disclaimer": "免責條款：本工具僅供參考，計算結果應根據法定要求及強積金實際結餘進行核實。所有計算均於您的瀏覽器本地執行，任何輸入資料均不會傳送至或儲存於任何伺服器。",
+        "disclaimer": "免責條款：本工具僅供參考，計算結果應根據法定要求及強積金受託人結單核實（特別是截至評估日、僅限 2025-05-01 前僱主強制性供款的應計權益）。所有計算均於您的瀏覽器本地執行，任何輸入資料均不會傳送至或儲存於任何伺服器。",
         "hint": "💡 提示：如需與官方計算器對比，請將加薪率及折現率設為 0%。",
         # --- UI labels ---
         "std_label": "會計準則",
@@ -146,6 +147,8 @@ LANG_DICT = {
         "results_title": "📊 結果摘要",
         "audit_expander": "🧮 審計底稿 — 逐步計算明細",
         "download_btn": "📥 下載 Excel 工作底稿（5 工作表）",
+        "guide_expander": "📘 使用指南",
+        "guide_missing": "找不到 USER_GUIDE.md，請確認檔案位於與 app.py 相同資料夾。",
         # --- Audit section A ---
         "audit_a_title": "#### A. 已採用的精算假設",
         "audit_std_lbl": "**會計準則：**",
@@ -167,7 +170,7 @@ LANG_DICT = {
         "audit_age_suffix": "歲）",
         "audit_sal_t_lbl": "轉制前薪金：",
         "audit_sal_c_lbl": "現時薪金：",
-        "audit_mpf_mand_lbl": "強積金強制性供款（僱主）：",
+        "audit_mpf_mand_lbl": "強積金強制性供款（僱主；評估日應計權益，限 2025-05-01 前供款）：",
         "audit_mpf_vol_lbl": "強積金自願性供款（僱主）：",
         "audit_step1_title": "**第1步 — 服務年期及折現**",
         "audit_pre_y_lbl": "轉制前年資：",
@@ -221,7 +224,7 @@ LANG_DICT = {
 """,
         "audit_limit_text": """
 **本計算的限制：**
-1. **強積金估算數字**：凡強積金強制性供款（僱主）為零或空白，系統按三段式模型估算（反映薪金上限歷史變化：2012年4月前=$20,000、2012年5月至2014年5月=$25,000、2014年6月起=$30,000）。各段供款按用戶指定的強積金回報率複利計算至轉制日 (2025-05-01)。最終審計結案前，必須向強積金受託人索取實際結單。
+1. **強積金估算數字**：凡強積金強制性供款（僱主）為零或空白，系統按三段式模型估算（反映薪金上限歷史變化：2012年4月前=$20,000、2012年5月至2014年5月=$25,000、2014年6月起=$30,000）。估算只涵蓋截至 2025-05-01 的僱主強制性供款，並按用戶指定的強積金回報率複利滾存至評估日。最終審計結案前，必須向強積金受託人索取實際結單（評估日應計權益）。
 2. **薪金預測**：HKFRS 下轉制後 LSP 採用按用戶指定增長率推算至退休（65歲）的預測薪金；SME-FRS 強制採用現時薪金（加薪率設為 0%）。實際離職薪金可能不同。
 3. **折現率**：僅適用於 HKFRS / HKFRS for PE。基於金管局外匯基金票據收益率或用戶輸入。須於每個報告日按照香港會計準則第19號更新。
 4. **政府資助**：資助比率可能因立法修訂而有所改變。每次評估時請向官方資助計劃管理機構核實適用年度的比率。
@@ -245,7 +248,7 @@ LANG_DICT = {
         "m_help": "Ref: MPFA DIS Core Fund (4-5%). Used for projecting MPF asset growth. See MPFA quarterly reports link.",
         "r_help": "Discount rate for future liability. Typically based on HKMA EFBN yields or high-quality corporate bonds. See HKMA link below.",
         "t_help": "Annual probability of employee leaving before retirement. Under HKFRS, compounded over years-to-retirement to derive a retention probability multiplier. SME-FRS assumes 100% retention.",
-        "upload_guide": "Required columns: [Name, Hired Date, DOB, Salary at Transition, Current Salary, MPF Mand (ER), MPF Vol (ER)]. MPF Vol (ER) is optional; leave blank for 0.",
+        "upload_guide": "Required columns: [Name, Hired Date, DOB, Salary at Transition, Current Salary, MPF Mand (ER), MPF Vol (ER)]. MPF Mand (ER) should be the accrued benefit at valuation date for employer mandatory contributions up to 2025-05-01. If blank/0, the tool estimates employer mandatory contributions up to 2025-05-01 and compounds them to valuation date using the MPF return assumption. MPF Vol (ER) is optional; leave blank for 0.",
         "res_pre": "Pre-transition LSP (a)",
         "res_mpf_pre": "MPF Offset (pre)",
         "res_net_pre": "Net Pre-transition (a')",
@@ -256,11 +259,11 @@ LANG_DICT = {
         "res_emp_post": "Employer's Post (b'-subsidy)",
         "res_final": "Net Liability (a'+emp.b') [SME-FRS: no PV / HKFRS: ×PV]",
         "res_mpf_basis": "MPF Data Basis",
-        "mpf_actual": "Actual Balance",
-        "mpf_estimated": "Estimated Mandatory (3-period caps × 5% × 12, with return)",
+        "mpf_actual": "Actual accrued benefit @ valuation date (ER mandatory up to 2025-05-01)",
+        "mpf_estimated": "Estimated accrued benefit @ valuation date (ER mandatory up to 2025-05-01)",
         "links_title": "📖 Official Resources & References",
         "sig_text": "Confirmation of calculation logic and data accuracy:",
-        "disclaimer": "Disclaimer: This tool is for reference only. All calculations are performed locally in your browser — no input data is transmitted to or stored on any server. Users should verify results against statutory requirements.",
+        "disclaimer": "Disclaimer: This tool is for reference only. Users must verify results against statutory requirements and MPF trustee statements (especially accrued benefit at valuation date for ER mandatory contributions up to 2025-05-01). All calculations are performed locally in your browser — no input data is transmitted to or stored on any server.",
         "hint": "💡 Tip: Set Salary Growth and Discount Rate to 0% to cross-check against the official LD calculator.",
         # --- UI labels ---
         "std_label": "Accounting Standard",
@@ -273,6 +276,8 @@ LANG_DICT = {
         "results_title": "📊 Results Summary",
         "audit_expander": "🧮 Audit Proof — Step-by-Step Calculations",
         "download_btn": "📥 Download Excel Working Paper (5 Sheets)",
+        "guide_expander": "📘 User Guide",
+        "guide_missing": "USER_GUIDE.md was not found. Please place it in the same folder as app.py.",
         # --- Audit section A ---
         "audit_a_title": "#### A. Actuarial Assumptions Applied",
         "audit_std_lbl": "**Accounting Standard:**",
@@ -294,7 +299,7 @@ LANG_DICT = {
         "audit_age_suffix": ")",
         "audit_sal_t_lbl": "Salary @ Transition:",
         "audit_sal_c_lbl": "Current Salary:",
-        "audit_mpf_mand_lbl": "MPF Mandatory (ER):",
+        "audit_mpf_mand_lbl": "MPF Mandatory (ER; accrued @ valuation date, pre-2025-05-01 only):",
         "audit_mpf_vol_lbl": "MPF Voluntary (ER):",
         "audit_step1_title": "**Step 1 — Service Years & Discounting**",
         "audit_pre_y_lbl": "Pre-transition:",
@@ -348,7 +353,7 @@ LANG_DICT = {
 """,
         "audit_limit_text": """
 **Limitations of this calculation:**
-1. **MPF Estimated figures**: Where MPF Mandatory (ER) was zero or blank, the balance was estimated using a 3-period segment model reflecting historical MPF salary cap changes: ≤Apr 2012=$20,000/mth, May 2012–May 2014=$25,000/mth, Jun 2014+=$30,000/mth. Each segment is compounded at the user-specified MPF Return Rate to the transition date (2025-05-01). Actual MPF trustee statements must be obtained for final audit sign-off.
+1. **MPF Estimated figures**: Where MPF Mandatory (ER) was zero or blank, the balance was estimated using a 3-period segment model reflecting historical MPF salary cap changes: ≤Apr 2012=$20,000/mth, May 2012–May 2014=$25,000/mth, Jun 2014+=$30,000/mth. Estimation includes ER mandatory contributions up to 2025-05-01 only, then compounds to valuation date at the user-specified MPF Return Rate. Actual MPF trustee statements (valuation-date accrued benefit) must be obtained for final audit sign-off.
 2. **Salary projection**: Under HKFRS, post-transition LSP uses salary projected to age 65 at the user-specified growth rate. Under SME-FRS, the current salary is used directly (growth rate forced to 0%). Actual termination salary may differ.
 3. **Discount rate**: Based on HKMA EFBN live yield or user input. Rate should be refreshed at each reporting date.
 4. **Government subsidy**: Subsidy rates are subject to legislative changes over the 25-year scheme. Verify the applicable year's rate at each valuation.
@@ -360,6 +365,15 @@ LANG_DICT = {
 """,
     }
 }
+
+
+@st.cache_data(show_spinner=False)
+def load_user_guide_md():
+    guide_path = Path(__file__).with_name("USER_GUIDE.md")
+    try:
+        return guide_path.read_text(encoding="utf-8-sig")
+    except (FileNotFoundError, OSError):
+        return None
 
 
 # --- 4. 側邊欄與輸入 ---
@@ -399,7 +413,7 @@ if input_method == L["upload_opt"]:
 else:
     init_data = [{"Name": "Staff A", "Hired Date": "2015-01-01", "DOB": "1980-01-01",
                   "Salary at Transition": 21000, "Current Salary": 24000,
-                  "MPF Mand (ER)": 50000, "MPF Vol (ER)": 0}]
+                  "MPF Mand (ER)": None, "MPF Vol (ER)": 0}]
     final_df = st.data_editor(pd.DataFrame(init_data), num_rows="dynamic")
 
 
@@ -437,7 +451,7 @@ if st.button(L["calc_btn"]):
             mpf_vol_raw  = row.get('MPF Vol (ER)', 0)
 
             # 強制性供款：如為 0 / None / 空，則估算
-            # 估算方法：按強積金薪金上限歷史分三段累積，再按 m_val 增長至轉制日
+            # 估算方法：先估算截至轉制日的僱主強制性供款，再按 m_val 滾存至評估日
             #   段 1: 2000-12-01 – 2012-04-30  薪金上限 $20,000
             #   段 2: 2012-05-01 – 2014-05-31  薪金上限 $25,000
             #   段 3: 2014-06-01 – 2025-04-30  薪金上限 $30,000
@@ -446,14 +460,14 @@ if st.button(L["calc_btn"]):
                 mpf_segs_detail = []
                 for seg_start, seg_end, sal_cap in _MPF_CAP_SEGS:
                     p_start = max(h_dt, seg_start)
-                    p_end   = min(TRANS_DATE, seg_end)
+                    p_end   = min(TRANS_DATE, REPORT_DATE, seg_end)
                     if p_start >= p_end:
                         continue
                     seg_yr   = calc_service_years(p_start, p_end)
                     seg_cont = min(sal_t, sal_cap) * 0.05 * 12 * seg_yr
-                    # midpoint of segment → years to TRANS_DATE for compounding
+                    # midpoint of segment → years to REPORT_DATE for accrued benefit at valuation
                     seg_mid  = p_start + (p_end - p_start) / 2
-                    yrs_grow = calc_service_years(seg_mid, TRANS_DATE)
+                    yrs_grow = calc_service_years(seg_mid, REPORT_DATE)
                     seg_val  = seg_cont * ((1 + m_val) ** yrs_grow)
                     mpf_mand += seg_val
                     mpf_segs_detail.append((sal_cap, seg_yr, seg_cont, yrs_grow, seg_val))
@@ -556,7 +570,7 @@ if st.button(L["calc_btn"]):
     if results:
         res_df = pd.DataFrame(results)
         st.subheader(L["results_title"])
-        st.dataframe(res_df, width='stretch')
+        st.dataframe(res_df, use_container_width=True)
 
         # ── Audit Proof Expander ──────────────────────────────────────────────
         with st.expander(L["audit_expander"], expanded=False):
@@ -582,7 +596,7 @@ if st.button(L["calc_btn"]):
             st.markdown(L["audit_b_title"])
             for d in audit_details:
                 age_at_val = (REPORT_DATE - d["dob"]).days / 365.25
-                with st.container(border=True):
+                with st.container():
                     st.markdown(f"##### 👤 {d['name']}")
                     c1, c2, c3 = st.columns(3)
                     with c1:
@@ -594,7 +608,7 @@ if st.button(L["calc_btn"]):
                         st.markdown(f"{L['audit_mpf_mand_lbl']} `${d['mpf_mand']:,.2f}` ({d['mpf_basis']})")
                         if d['mpf_segs_detail']:
                             for sal_cap, seg_yr, seg_cont, yrs_grow, seg_val in d['mpf_segs_detail']:
-                                st.caption(f"  Cap ${sal_cap:,}: {seg_yr:.2f}yrs → contrib ${seg_cont:,.0f} × (1+{d['m_val']*100:.1f}%)^{yrs_grow:.1f} = ${seg_val:,.0f}")
+                                st.caption(f"  Cap ${sal_cap:,}: {seg_yr:.2f}yrs → contrib ${seg_cont:,.0f} × (1+{d['m_val']*100:.1f}%)^{yrs_grow:.1f} to valuation = ${seg_val:,.0f}")
                         st.markdown(f"{L['audit_mpf_vol_lbl']} `${d['mpf_vol']:,.2f}`")
                     with c2:
                         st.markdown(L["audit_step1_title"])
@@ -828,8 +842,8 @@ if st.button(L["calc_btn"]):
              "Remaining voluntary after pre-offset → applied to post-LSP",
              "Voluntary contributions may offset either period"],
             ["MPF Estimation (if no data)",
-             "3-period segment model: min(sal, cap) × 5% × 12 × yrs × (1+m)^yrs_to_trans",
-             "Caps: ≤Apr 2012=$20k | May 2012–May 2014=$25k | Jun 2014+=$30k; m=MPF return rate; from max(hire, 2000-12-01) to 2025-05-01"],
+             "3-period segment model: min(sal, cap) × 5% × 12 × yrs × (1+m)^yrs_to_val",
+             "Caps: ≤Apr 2012=$20k | May 2012–May 2014=$25k | Jun 2014+=$30k; estimate ER mandatory up to 2025-05-01, then compound to valuation date"],
             ["Government Subsidy (C)",
              "max(Rate × net_post, net_post − Employer Cap)",
              "Applied to net post-transition LSP (b'); rate per policy year"],
@@ -897,7 +911,7 @@ if st.button(L["calc_btn"]):
                 ["Date of Birth",           str(d['dob'].date()),       f"Age at valuation: {age_v:.1f}"],
                 ["Salary at Transition",    f"${d['sal_t']:,.2f}",      "Monthly salary immediately before 2025-05-01"],
                 ["Current Salary",          f"${d['sal_c']:,.2f}",      "Monthly salary at valuation date"],
-                ["MPF Mandatory (ER)",       f"${d['mpf_mand']:,.2f}",  d['mpf_basis']],
+                ["MPF Mandatory (ER)",       f"${d['mpf_mand']:,.2f}",  f"{d['mpf_basis']} (pre-2025-05-01 ER mandatory only)"],
             ]
             # If estimated, append one sub-row per segment
             if d['mpf_segs_detail']:
@@ -905,7 +919,7 @@ if st.button(L["calc_btn"]):
                     detail_rows.append([
                         f"  └ Cap ${sal_cap:,}",
                         f"${seg_val:,.2f}",
-                        f"min(sal,${sal_cap:,})×5%×12×{seg_yr:.2f}yrs=${seg_cont:,.0f} × (1+{d['m_val']*100:.1f}%)^{yrs_grow:.1f}yrs"
+                        f"min(sal,${sal_cap:,})×5%×12×{seg_yr:.2f}yrs=${seg_cont:,.0f} × (1+{d['m_val']*100:.1f}%)^{yrs_grow:.1f}yrs to valuation"
                     ])
             detail_rows += [
                 ["MPF Voluntary (ER)",       f"${d['mpf_vol']:,.2f}",   "Actual input; 0 if not provided"],
@@ -1008,7 +1022,7 @@ if st.button(L["calc_btn"]):
 
         write_header(ws5, ["#", "Limitation / Disclaimer"])
         limitations = [
-            ("1", "MPF ESTIMATED BALANCES: Where MPF Mandatory (ER) was zero or blank, balance was estimated using a 3-period segment model reflecting historical MPF salary cap changes: ≤Apr 2012=$20,000/mth, May 2012–May 2014=$25,000/mth, Jun 2014+=$30,000/mth. Each segment is compounded at the user-specified MPF Return Rate to the transition date (2025-05-01). Actual MPF trustee statements MUST be obtained for final audit sign-off."),
+            ("1", "MPF ESTIMATED BALANCES: Where MPF Mandatory (ER) was zero or blank, balance was estimated using a 3-period segment model reflecting historical MPF salary cap changes: ≤Apr 2012=$20,000/mth, May 2012–May 2014=$25,000/mth, Jun 2014+=$30,000/mth. Estimation includes ER mandatory contributions up to 2025-05-01 only, then compounds to valuation date at the user-specified MPF Return Rate. Actual MPF trustee statements (valuation-date accrued benefit) MUST be obtained for final audit sign-off."),
             ("2", "SALARY PROJECTION: Under HKFRS, post-transition LSP uses salary projected to age 65 at the user-specified growth rate. Under SME-FRS, the current salary is used directly (growth rate forced to 0%). Actual termination salary may differ."),
             ("3", "DISCOUNT RATE: Applies to HKFRS / HKFRS for PE only. Based on HKMA EFBN yield or user input. Rate must be refreshed at each reporting date per HKAS 19 requirements."),
             ("4", "GOVERNMENT SUBSIDY: Rates are subject to legislative change over the 25-year scheme. Always verify the applicable year's rate with the official Subsidy Scheme Administrator."),
@@ -1048,6 +1062,15 @@ if st.button(L["calc_btn"]):
 
 
 # --- 6. 資源連結 ---
+st.markdown("---")
+with st.expander(L["guide_expander"], expanded=False):
+    guide_md = load_user_guide_md()
+    if guide_md:
+        st.markdown(guide_md)
+    else:
+        st.warning(L["guide_missing"])
+
+# --- 7. 資源連結 ---
 st.markdown("---")
 st.subheader(L["links_title"])
 c1, c2 = st.columns(2)
