@@ -12,7 +12,7 @@
 → **[QUICK_START.md](QUICK_START.md)** (60 seconds to running)
 
 #### 📖 Understand the Application
-→ **[README.md](README.md)** (Complete user guide & features)
+→ **[README.md](README.md)** (Project overview & features)
 
 #### 💻 Deploy the Application
 → **[DEPLOYMENT.md](DEPLOYMENT.md)** (Local, Docker, Cloud options)
@@ -22,6 +22,15 @@
 
 #### ⚖️ Understand Legal Terms
 → **[TERMS_OF_SERVICE.md](TERMS_OF_SERVICE.md)** (Disclaimers & limitations)
+
+#### 🔎 Trace Rules to Code
+→ **[REGULATION_TRACEABILITY.md](REGULATION_TRACEABILITY.md)** (Regulation-to-logic mapping)
+
+#### 🧾 Auditor Sign-off
+→ **[AUDITOR_SIGNOFF_CHECKLIST.md](AUDITOR_SIGNOFF_CHECKLIST.md)** (Framework check & evidence sign-off)
+
+#### 🧾 Auditor Sign-off (TC)
+→ **[AUDITOR_SIGNOFF_CHECKLIST_TC.md](AUDITOR_SIGNOFF_CHECKLIST_TC.md)** (繁中簽核清單)
 
 #### ✅ Check Publication Status
 → **[PUBLICATION_READY.md](PUBLICATION_READY.md)** (Readiness assessment)
@@ -41,10 +50,11 @@
 
 ### For Users
 ```
-README.md                  ← Start here! Features, usage, formulas
+README.md                  ← Start here! Features and quick run options
 ├─ QUICK_START.md         ← Get running in 60 seconds
 ├─ SAMPLE_DATA.md         ← How to format your data
-└─ TERMS_OF_SERVICE.md    ← Legal info & limitations
+├─ TERMS_OF_SERVICE.md    ← Legal info & limitations
+└─ REGULATION_TRACEABILITY.md ← Rule-to-code audit traceability
 ```
 
 ### For Deployers
@@ -76,18 +86,22 @@ PUBLICATION_READY.md      ← Final readiness report
 
 | Document | Purpose | Audience | Length | Priority |
 |----------|---------|----------|--------|----------|
-| **README.md** | Complete user guide | Everyone | 745 lines | ⭐ Essential |
-| **QUICK_START.md** | 60-second setup | Impatient users | 250 lines | ⭐ Essential |
-| **DEPLOYMENT.md** | Installation guide | DevOps/Sysadmin | 260 lines | ⭐ Essential |
-| **SAMPLE_DATA.md** | Data formats | Data entry staff | 180 lines | ⭐ Essential |
-| **TERMS_OF_SERVICE.md** | Legal terms | Legal/Compliance | 280 lines | ⭐ Essential |
-| **CODE_IMPROVEMENTS.md** | Enhancement roadmap | Developers | 280 lines | ℹ️ Reference |
-| **PUBLICATION_CHECKLIST.md** | Pre-launch tasks | Publishers | 280 lines | ℹ️ Reference |
-| **PUBLICATION_READY.md** | Final assessment | Project managers | 320 lines | ℹ️ Reference |
-| **COMPLETION_REPORT.md** | What was done | Stakeholders | 300 lines | ℹ️ Reference |
-| **LICENSE** | Open-source license | Legal | 20 lines | ⭐ Essential |
+| **README.md** | Project overview | Everyone | 99 lines | ⭐ Essential |
+| **USER_GUIDE.md** | Full step-by-step guide | Users/Audit | 448 lines | ⭐ Essential |
+| **QUICK_START.md** | 60-second setup | Impatient users | 239 lines | ⭐ Essential |
+| **DEPLOYMENT.md** | Installation guide | DevOps/Sysadmin | 332 lines | ⭐ Essential |
+| **SAMPLE_DATA.md** | Data formats | Data entry staff | 105 lines | ⭐ Essential |
+| **TERMS_OF_SERVICE.md** | Legal terms | Legal/Compliance | 179 lines | ⭐ Essential |
+| **REGULATION_TRACEABILITY.md** | Regulation-to-code mapping | Audit/Compliance | 60 lines | ⭐ Essential |
+| **AUDITOR_SIGNOFF_CHECKLIST.md** | Audit sign-off worksheet | Audit/Compliance | 125 lines | ⭐ Essential |
+| **AUDITOR_SIGNOFF_CHECKLIST_TC.md** | Audit sign-off worksheet (Traditional Chinese) | Audit/Compliance | 118 lines | ⭐ Essential |
+| **CODE_IMPROVEMENTS.md** | Enhancement roadmap | Developers | 343 lines | ℹ️ Reference |
+| **PUBLICATION_CHECKLIST.md** | Pre-launch tasks | Publishers | 233 lines | ℹ️ Reference |
+| **PUBLICATION_READY.md** | Final assessment | Project managers | 278 lines | ℹ️ Reference |
+| **COMPLETION_REPORT.md** | What was done | Stakeholders | 324 lines | ℹ️ Reference |
+| **LICENSE** | Open-source license | Legal | 21 lines | ⭐ Essential |
 | **requirements.txt** | Dependencies | Developers | 5 lines | ⭐ Essential |
-| **Dockerfile** | Container config | DevOps | 7 lines | ⭐ Essential |
+| **Dockerfile** | Container config | DevOps | 20 lines | ⭐ Essential |
 
 ---
 
@@ -138,12 +152,12 @@ PUBLICATION_READY.md      ← Final readiness report
 ### I have a question about...
 
 #### **How to use the application**
-→ README.md (section: "Usage")
-→ QUICK_START.md (section: "Basic Workflow")
+→ USER_GUIDE.md
+→ QUICK_START.md
 
 #### **Data formats**
 → SAMPLE_DATA.md
-→ README.md (section: "Input Data")
+→ README.md (section: "Input Columns")
 
 #### **Installation & setup**
 → QUICK_START.md
@@ -153,12 +167,12 @@ PUBLICATION_READY.md      ← Final readiness report
 → DEPLOYMENT.md (section: "Cloud Deployment")
 
 #### **Calculations & formulas**
-→ README.md (section: "Key Formulas")
-→ SAMPLE_DATA.md (section: "Field Definitions")
+→ USER_GUIDE.md (sections: "Understanding the Output Columns" and "How the Key Formulas Work")
+→ REGULATION_TRACEABILITY.md
 
 #### **Limitations & disclaimers**
 → TERMS_OF_SERVICE.md
-→ README.md (section: "Limitations & Disclaimers")
+→ USER_GUIDE.md (section: "Limitations & Important Notes")
 
 #### **Publication status**
 → PUBLICATION_READY.md
@@ -166,7 +180,7 @@ PUBLICATION_READY.md      ← Final readiness report
 
 #### **Legal compliance**
 → TERMS_OF_SERVICE.md
-→ README.md (section: "Compliance")
+→ REGULATION_TRACEABILITY.md
 
 #### **Future improvements**
 → CODE_IMPROVEMENTS.md
@@ -203,9 +217,9 @@ PUBLICATION_READY.md      ← Final readiness report
 ## 📊 File Statistics
 
 ```
-Total Documentation Files: 13
-Total Documentation Lines: ~4,500
-Total Code Lines: ~1,066
+Total Documentation Files: 21
+Total Documentation Lines: 4,897
+Total Code Lines: 1,145
 Dependencies: 5
 License: MIT (open-source)
 Status: ✅ Production-Ready
@@ -216,7 +230,7 @@ Status: ✅ Production-Ready
 ## ✅ What's Been Done
 
 - [x] Core application (app.py) — Fully functional
-- [x] User documentation (8 guides) — Comprehensive
+- [x] User documentation (9+ guides) — Comprehensive
 - [x] Deployment guides (5 options) — Complete
 - [x] Data format specs — Clear & complete
 - [x] Legal disclaimers — Comprehensive
@@ -251,7 +265,7 @@ Status: ✅ Production-Ready
 ## 📞 Need Help?
 
 **Feature Question?**
-→ Check README.md section "FAQ" or "Usage"
+→ Check USER_GUIDE.md or README.md overview
 
 **Installation Problem?**
 → Check DEPLOYMENT.md troubleshooting section
@@ -289,7 +303,7 @@ OVERALL STATUS: ✅ PRODUCTION READY & APPROVED FOR PUBLICATION
 
 ## 📝 Last Updated
 
-- **Date**: 27 April 2026
+- **Date**: 29 April 2026
 - **Version**: 1.0 (Initial Release)
 - **Status**: ✅ Ready to Publish
 

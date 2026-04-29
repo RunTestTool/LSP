@@ -86,7 +86,7 @@ Calculations based on:
 - HKMA Exchange Fund Bills & Notes daily yields
 
 ### Key Limitations
-1. **MPF Estimation**: Where actual balances not provided, estimated using 3-period historical model. Always verify against trustee statements.
+1. **MPF Estimation**: Where actual balances are not provided, mandatory ER balance is estimated from hire date to valuation date using historical salary-cap segments (including post-1 May 2025 period when applicable). Always verify against trustee statements.
 2. **Salary Projection**: Based on user-specified growth rate and assumes continued employment to retirement age (65).
 3. **Discount Rate**: HKFRS only; assumes rates refreshed per HKAS 19 at each reporting date.
 4. **Government Subsidy**: 25-year ladder subject to legislative change; verify applicable rates annually.

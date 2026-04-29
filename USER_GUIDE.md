@@ -50,7 +50,7 @@ This browser-based calculator computes the **Long Service Payment (LSP)** liabil
 | **DOB** | Date of birth | Format: `YYYY-MM-DD` — used to calculate age 65 retirement |
 | **Salary at Transition** | Monthly salary as at 30 April 2025 | Used for pre-transition LSP calculation |
 | **Current Salary** | Monthly salary at valuation date | Used for post-transition LSP calculation |
-| **MPF Mand (ER)** | Accrued benefit at valuation date for **employer mandatory contributions up to 1 May 2025** (HKD) | If blank/zero, the tool **estimates** contributions up to 1 May 2025, then compounds to valuation date — see Limitation #1 |
+| **MPF Mand (ER)** | Total accrued benefit at valuation date for **all employer mandatory contributions** (HKD) | Includes both pre- and post-1 May 2025 mandatory contributions, because the full mandatory balance can offset **pre-transition** LSP; if blank/zero, the tool **estimates** it to valuation date — see Limitation #1 |
 | **MPF Vol (ER)** | Cumulative voluntary MPF contributions by employer (HKD) | Optional; leave blank or 0 if none |
 
 > ⚠️ **Data accuracy is critical.** Hire dates, salaries, and MPF balances should be verified against source documents (HR records, MPF trustee statements) before producing final accounts.
@@ -167,7 +167,7 @@ On the main page, choose a data source:
 3. Click any cell to edit; click **+ Add Row** at the bottom to add new employees
 4. Fill in all required columns (see [Section 2](#2-before-you-start--what-you-need))
 
-> ✏️ You can leave **MPF Mand (ER)** blank or 0 — the tool will estimate it (see Limitation #1). For final numbers, replace with the MPF trustee-confirmed accrued benefit at valuation date for ER mandatory contributions up to 1 May 2025.
+> ✏️ You can leave **MPF Mand (ER)** blank or 0 — the tool will estimate it (see Limitation #1). For final numbers, replace with the MPF trustee-confirmed **total** accrued benefit at valuation date for employer mandatory contributions.
 
 ### Option B: Upload File (large teams)
 
@@ -243,7 +243,7 @@ For each employee, the calculation is broken into **four steps**:
 |---|---|
 | **Step 1** | Service years (pre & post), years to age 65, PV factor, turnover probability |
 | **Step 2** | Pre-LSP formula, projected salary (HKFRS), post-LSP formula with caps |
-| **Step 3** | Mandatory and voluntary MPF offset allocation (pre then post) |
+| **Step 3** | MPF offset allocation: all mandatory accrued at valuation date offsets pre-transition only; voluntary offsets pre then post |
 | **Step 4** | Policy year, subsidy tier, subsidy amount, employer burden, final liability |
 
 ### Section C — Statutory References
@@ -278,7 +278,7 @@ The downloaded file `LSP_Audit_WP_Final.xlsx` contains:
 
 ```
 Pre-transition LSP (a)
-  └─ Offset by: Mandatory MPF (ER)   ← mandatory: pre-transition only
+  └─ Offset by: Mandatory MPF (ER)   ← all mandatory accrued at valuation can offset pre-transition only
   └─ Offset by: Voluntary MPF (ER)   ← voluntary: pre first, then remainder to post
   = Net Pre-transition (a')          ← fully vested, always payable
 
@@ -336,17 +336,18 @@ b = min(  Projected salary × (2/3) × post_years,  $390,000 − a  )
 ```
 
 ### MPF Estimation (When No Actual Balance Provided)
-The tool uses a **3-period segment model** reflecting historical MPF salary cap changes:
+The tool uses a **dynamic segment model from hire date to valuation date**:
 
-| Period | Salary Cap | MPF Rate |
-|---|---|---|
-| Dec 2000 – Apr 2012 | $20,000/month | 5% |
-| May 2012 – May 2014 | $25,000/month | 5% |
-| Jun 2014 – Apr 2025 | $30,000/month | 5% |
+| Segment | Salary Cap | Salary Basis | MPF Rate |
+|---|---|---|---|
+| Dec 2000 – Apr 2012 | $20,000/month | Salary at Transition | 5% |
+| May 2012 – May 2014 | $25,000/month | Salary at Transition | 5% |
+| Jun 2014 – Apr 2025 | $30,000/month | Salary at Transition | 5% |
+| May 2025 – Valuation Date (if applicable) | $30,000/month | Current Salary | 5% |
 
-For each segment:
+For each applicable segment:
 ```
-Contribution = min(Salary@Transition, Cap) × 5% × 12 months × segment years
+Contribution = min(Salary basis, Cap) × 5% × 12 months × segment years
 Grown value  = Contribution × (1 + MPF Return Rate)^years_to_valuation_date
 ```
 
@@ -393,7 +394,7 @@ Final Liability = (net_pre  +  employer_post × Prob_of_Stay) × PV_Factor
 A: The employee has less than 5 years of total service at the valuation date. LSP entitlement requires a minimum of 5 years' service under Cap. 57.
 
 **Q: Why is the MPF Mand (ER) showing "Estimated"?**  
-A: You left the MPF Mandatory (ER) column blank or entered 0. The tool estimated ER mandatory contributions up to 1 May 2025 and compounded them to valuation date. Replace this with the trustee-confirmed valuation-date accrued benefit before final sign-off.
+A: You left the MPF Mandatory (ER) column blank or entered 0. The tool estimated employer mandatory contributions from hire date to valuation date, using `Salary at Transition` for pre-transition periods and `Current Salary` for post-transition periods, then compounded each segment to valuation date. Replace this with the trustee-confirmed valuation-date total accrued mandatory benefit before final sign-off.
 
 **Q: The discount rate loaded is different from what I expected.**  
 A: The tool fetches the latest available HKMA 10-year EFBN yield on launch. If your internet is unavailable, it falls back to 3.5%. You can manually override the rate in the sidebar.

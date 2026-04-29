@@ -97,7 +97,7 @@ MPF Voluntary: $5,000
 | DOB | YYYY-MM-DD | 1985-03-15 | Calc age to 65 |
 | Salary @ Transition | Number | 18000 | Monthly, $30 Apr 2025 |
 | Current Salary | Number | 22000 | Monthly, at valuation date |
-| MPF Mand (ER) | Number | 95000 | Leave blank to estimate |
+| MPF Mand (ER) | Number | 95000 | Total employer mandatory accrued benefit at valuation date; leave blank to estimate |
 | MPF Vol (ER) | Number | 5000 | Optional; blank = 0 |
 
 ### ✅ Valid Example Row

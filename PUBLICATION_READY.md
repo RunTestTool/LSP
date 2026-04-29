@@ -48,7 +48,7 @@ Created comprehensive guides:
 - **SME-FRS & HKFRS accounting standards** — Correctly implemented
 - **LSP calculations** — Per Employment Ordinance (Cap. 57) ✅
 - **25-year subsidy scheme** — Government subsidy ladder accurate ✅
-- **MPF offsetting** — Mandatory (pre) + Voluntary (pre then post) ✅
+- **MPF offsetting** — All valuation-date mandatory offsets pre-transition only; voluntary offsets pre then post ✅
 - **Service year calculation** — Official method (whole years + days/365) ✅
 - **Discount rates** — Live HKMA EFBN integration with 3.5% fallback ✅
 - **Bilingual UI** — English & Traditional Chinese (繁中) ✅

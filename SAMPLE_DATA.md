@@ -51,11 +51,11 @@ Use columns in this order (case-sensitive):
 
 Obtain from MPF trustee statement:
 
-- **MPF Mand (ER)**: Total accumulated mandatory ER contributions + accrued returns as of 30 April 2025
-- **MPF Vol (ER)**: Total accumulated voluntary ER contributions + accrued returns as of 30 April 2025
+- **MPF Mand (ER)**: Total accumulated mandatory ER contributions + accrued returns as of the valuation date (including both pre- and post-1 May 2025 contributions)
+- **MPF Vol (ER)**: Total accumulated voluntary ER contributions + accrued returns as of the valuation date
 
 **If not available, leave blank:**
-- Tool will estimate using 3-period historical cap model
+- Tool will estimate from hire date to valuation date using the historical cap segments (and includes a post-1 May 2025 segment when applicable)
 - Estimation less accurate than actual figure
 - Always verify with trustee statement before final audit sign-off
 
