@@ -454,6 +454,38 @@ def _is_empty(v):
         return True
 
 
+def _to_float(v, field_name, allow_empty=False, default=0.0):
+    if v is None:
+        if allow_empty:
+            return default
+        raise ValueError(f"{field_name} is empty")
+
+    if isinstance(v, str):
+        cleaned = v.strip().replace(",", "")
+        if cleaned == "":
+            if allow_empty:
+                return default
+            raise ValueError(f"{field_name} is empty")
+        v = cleaned
+
+    if pd.isna(v):
+        if allow_empty:
+            return default
+        raise ValueError(f"{field_name} is empty")
+
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        raise ValueError(f"{field_name} must be a valid number")
+
+
+def _to_timestamp(v, field_name):
+    ts = pd.to_datetime(v, errors="coerce")
+    if pd.isna(ts):
+        raise ValueError(f"{field_name} must be a valid date (YYYY-MM-DD)")
+    return pd.Timestamp(ts)
+
+
 def estimate_mpf_mandatory_balance(h_dt, report_date, sal_t, sal_c, m_val):
     total_mpf = 0.0
     details = []
@@ -492,15 +524,39 @@ def estimate_mpf_mandatory_balance(h_dt, report_date, sal_t, sal_c, m_val):
 if st.button(L["calc_btn"]):
     TRANS_DATE = pd.Timestamp('2025-05-01')
     REPORT_DATE = pd.Timestamp(rep_date)
+    final_df = final_df.rename(columns=lambda c: str(c).replace("\u00A0", " ").strip())
+    required_cols = ["Name", "Hired Date", "DOB", "Salary at Transition", "Current Salary"]
+    missing_cols = [c for c in required_cols if c not in final_df.columns]
+    if missing_cols:
+        st.error(f"Missing required columns: {', '.join(missing_cols)}")
+        st.stop()
+
     results = []
     audit_details = []
 
     for idx, row in final_df.iterrows():
         try:
-            h_dt = pd.Timestamp(row['Hired Date'])
-            dob = pd.Timestamp(row['DOB'])
-            sal_t = float(row['Salary at Transition'])
-            sal_c = float(row['Current Salary'])
+            name = str(row.get('Name', '')).strip() or f"Row {idx + 1}"
+
+            # Ignore fully blank rows from manual editor or spreadsheet tails.
+            if (
+                name == f"Row {idx + 1}" and
+                _is_empty(row.get('Hired Date')) and
+                _is_empty(row.get('DOB')) and
+                _is_empty(row.get('Salary at Transition')) and
+                _is_empty(row.get('Current Salary')) and
+                _is_empty(row.get('MPF Mand (ER)', row.get('MPF Bal (ER)', 0))) and
+                _is_empty(row.get('MPF Vol (ER)', 0))
+            ):
+                continue
+
+            h_dt = _to_timestamp(row.get('Hired Date'), 'Hired Date')
+            dob = _to_timestamp(row.get('DOB'), 'DOB')
+            sal_t = _to_float(row.get('Salary at Transition'), 'Salary at Transition')
+            sal_c = _to_float(row.get('Current Salary'), 'Current Salary')
+            if sal_t <= 0 or sal_c <= 0:
+                raise ValueError("Salary at Transition and Current Salary must be > 0")
+
             mpf_mand_raw = row.get('MPF Mand (ER)', row.get('MPF Bal (ER)', 0))
             mpf_vol_raw  = row.get('MPF Vol (ER)', 0)
 
@@ -519,7 +575,7 @@ if st.button(L["calc_btn"]):
 
             # 資格檢查：不滿 5 年 (uses calc_service_years to handle leap years correctly)
             if calc_service_years(h_dt, REPORT_DATE) < 5.0:
-                results.append({"Name": row['Name'], L['res_final']: 0, "Note": "年資不足5年 / Not Vested"})
+                results.append({"Name": name, L['res_final']: 0, "Note": "年資不足5年 / Not Vested"})
                 continue
 
             # 年資計算 (官方方法：足年 + 餘下天數/365)
@@ -568,7 +624,7 @@ if st.button(L["calc_btn"]):
             final_pv = (net_pre + employer_post * prob_stay) * pv
 
             results.append({
-                "Name": row['Name'],
+                "Name": name,
                 L["res_mpf_basis"]: mpf_basis,
                 L["res_pre"]: round(v_pre, 2),
                 L["res_mpf_pre"]: round(offset_pre, 2),
@@ -582,7 +638,7 @@ if st.button(L["calc_btn"]):
             })
 
             audit_details.append({
-                "name": row['Name'],
+                "name": name,
                 "h_dt": h_dt, "dob": dob,
                 "sal_t": sal_t, "sal_c": sal_c,
                 "mpf_mand": mpf_mand, "mpf_vol": mpf_vol, "mpf_basis": mpf_basis,
@@ -606,7 +662,9 @@ if st.button(L["calc_btn"]):
                 "g_val": g_val, "r_val": r_val, "t_val": t_val,
             })
         except Exception as e:
-            st.error(f"Error at row {idx}: {e}")
+            row_no = idx + 1
+            row_name = str(row.get('Name', '')).strip() or f"Row {row_no}"
+            st.error(f"Error at row {row_no} ({row_name}): {e}")
 
     if results:
         res_df = pd.DataFrame(results)
